@@ -171,156 +171,229 @@ Features should be described as operational only after their hardware and firmwa
 
 ---
 
-## System Architecture
+## 5. System Architecture and Working Flow
+
+The following flowchart follows the working sequence shown in the SoniX presentation: continuous sensing, event verification, severity classification, local alerts, event logging, and online/offline data handling.
 
 ```mermaid
 flowchart TD
-    A["Environmental and Motion Sensors"] --> B["Controller: ESP32 Candidate"]
-    A1["UV Sensor"] --> A
-    A2["Gas Sensor"] --> A
-    A3["Temperature Sensor"] --> A
-    A4["MPU6050 IMU"] --> A
-    A5["PPE Monitoring Sensors"] --> A
+    A(["Power ON"]) --> B["Smart Module<br/>Mounted on Safety Vest"]
+    B --> C["Initialize ESP32, Sensors,<br/>SD Card, Wi-Fi, Alerts<br/>and Power System"]
+    C --> D["Read Sensor Data Continuously<br/>Arc / UV, Gas and IMU"]
 
-    B --> C["Input Validation"]
-    C --> D["Calibration and Filtering"]
-    D --> E["Feature Extraction"]
-    E --> F["Hazard Rules and Persistence Checks"]
-    F --> G["Local Alert Interface"]
-    F --> H["Event Logging"]
-    H --> I["microSD Card"]
-    H --> J["Wi-Fi Communication"]
-    J --> K["Planned Web Dashboard"]
+    D --> E1["Arc / UV Sensor<br/>Intensity + Duration"]
+    D --> E2["Gas Sensor<br/>Gas Level + Duration"]
+    D --> E3["IMU Sensor<br/>Movement + Orientation"]
+
+    E1 --> F["Event Engine"]
+    E2 --> F
+    E3 --> F
+
+    F --> G{"Abnormal Event?"}
+
+    G -- "No" --> H["Continue Sensing<br/>Do Not Store Event"]
+    H --> D
+
+    G -- "Yes" --> I["Verify Event"]
+    I --> J["Classify Severity"]
+    J --> K["Local Alert<br/>Buzzer + Vibration"]
+    K --> L["Create Timestamped Log"]
+
+    L --> M{"Wi-Fi Available?"}
+    M -- "Yes" --> N["Send Event to Server"]
+    N --> O["Supervisor Dashboard"]
+
+    M -- "No" --> P["Save Event to<br/>SD Card (Offline)"]
+    P --> Q["Automatic Sync<br/>When Wi-Fi Returns"]
+    Q --> O
+
+    O --> D
 ```
 
-The diagram represents the proposed system architecture. Individual sensor branches depend on the final hardware configuration.
+### Working Explanation
 
----
+**Step 1 — Power ON**
 
-## Sensor Descriptions and Mathematical Models
+The smart safety module is switched on.
 
-### 1. UV Sensor
+**Step 2 — System initialization**
 
-**Candidate module:** VEML6075.
+The controller initializes the configured sensors, microSD card, Wi-Fi connection, alert devices, and power system.
 
-A UV sensor measures ultraviolet radiation through its supported sensing channels. The output and calibration requirements depend on the selected module and its configuration.
+**Step 3 — Continuous sensor reading**
 
-Let \(U[k]\) represent a validated UV measurement at sample \(k\).
+The system reads:
 
-A configurable threshold indicator is:
+- **Arc/UV sensor:** UV-related intensity indicators and their duration.
+- **Gas sensor:** changes in gas-sensor response and how long the condition persists.
+- **IMU sensor:** worker movement, acceleration, and orientation.
 
-\[
-A[k]=
-\begin{cases}
-1,&U[k]>U_{\mathrm{th}}\\
-0,&U[k]\le U_{\mathrm{th}}
-\end{cases}
-\]
+**Step 4 — Event engine**
 
-The accumulated time above a configured threshold can be estimated as:
+The controller processes the readings and compares them with configured rules.
 
-\[
-T_{\mathrm{above}}=\sum_k A[k]\Delta t
-\]
+**Step 5 — Abnormal-event decision**
 
-where \(\Delta t\) is the sampling interval.
+- If no abnormal condition is detected, the system continues sensing without creating an event record.
+- If a potential abnormal condition is detected, the system proceeds to event verification.
 
-If the sensor provides calibrated irradiance \(E[k]\) in \(\mathrm{W/m^2}\), radiant exposure can be estimated as:
+**Step 6 — Verify and classify**
 
-\[
-H=\sum_k E[k]\Delta t
-\]
+The event engine checks the relevant measurement, duration, and confirmation criteria. A verified event is assigned an application-defined severity.
 
-The unit of \(H\) is \(\mathrm{J/m^2}\).
+**Step 7 — Local alert**
 
-Raw sensor counts or an uncalibrated UV index must not be treated as irradiance. Exposure calculations require appropriate calibrated measurements.
+The buzzer and vibration motor notify the worker, provided these components are installed and enabled.
 
-### 2. Gas and Fume Sensor
+**Step 8 — Create event log**
 
-**Candidate module:** MQ-135.
+The system records a timestamp and relevant sensor readings for the verified event.
 
-The MQ-135 responds to changes in the surrounding gas composition. Its output can vary with temperature, humidity, sensor conditioning, and the gases present.
+**Step 9 — Online/offline data handling**
 
-A baseline-relative response indicator is:
+- **Wi-Fi available:** send the event to the server for display on the supervisor dashboard.
+- **Wi-Fi unavailable:** save the event on the microSD card and synchronize it when connectivity returns.
 
-\[
-\Delta G_{\%}=
-\frac{G-G_{\mathrm{base}}}
-{|G_{\mathrm{base}}|}\times100
-\]
+*Implementation note: This flowchart represents the proposed system. Server transmission, automatic synchronization, and event verification must be validated in the implemented prototype.*
 
-where:
+## Sensor Mathematical Models
 
-- \(G\) is the current sensor response.
-- \(G_{\mathrm{base}}\) is the established baseline.
-- \(\Delta G_{\%}\) is the percentage change relative to that baseline.
+### 1. UV Sensor — VEML6075
 
-This formula identifies relative changes; it does not directly calculate gas concentration in ppm.
+**Purpose:** Detect elevated UV intensity and measure how long the intensity remains above a threshold.
 
-The MQ-135 is not a selective detector for every hazardous welding emission. Specific gases may require dedicated sensors and gas-specific calibration.
+**Formula 1: UV threshold detection**
+
+```text
+A_U[k] = 1, if U[k] > U_th
+A_U[k] = 0, otherwise
+```
+
+Where:
+- `U[k]` = UV reading at sample `k`
+- `U_th` = configured UV threshold
+- `A_U[k]` = threshold indicator (1 = above threshold, 0 = normal)
+
+**Formula 2: Duration above the threshold**
+
+```text
+T_U = sum(A_U[k] * delta_t)
+```
+
+Where:
+- `T_U` = accumulated time above the UV threshold
+- `delta_t` = time interval between consecutive samples
+
+### 2. Gas Sensor — MQ-135
+
+**Purpose:** Identify an increase in gas-sensor response relative to its baseline.
+
+**Formula: Percentage change from baseline**
+
+```text
+Delta_G_percent = ((G[k] - G_base) / abs(G_base)) * 100
+```
+
+Where:
+- `G[k]` = current sensor response
+- `G_base` = baseline sensor response
+- `Delta_G_percent` = percentage change from baseline
+
+**Important:** This calculation represents a relative sensor-response change, not gas concentration in ppm. Reliable concentration estimates require appropriate calibration and gas-specific validation.
 
 ### 3. Motion Sensor — MPU6050
 
-The MPU6050 combines a three-axis accelerometer and a three-axis gyroscope. It provides motion measurements that can support movement analysis and potential fall detection.
+**Purpose:** Analyze acceleration and orientation changes to identify unusual movement or possible fall events.
 
-The resultant acceleration magnitude is:
+**Formula 1: Acceleration magnitude**
 
-\[
-a_{\mathrm{mag}}=
-\sqrt{a_x^2+a_y^2+a_z^2}
-\]
+```text
+a_mag = sqrt(ax^2 + ay^2 + az^2)
+```
 
-where \(a_x\), \(a_y\), and \(a_z\) are the acceleration components in consistent units.
+Where:
+- `ax`, `ay`, `az` = acceleration readings along the three axes
+- `a_mag` = total acceleration magnitude
 
-A simple orientation-change feature is:
+**Formula 2: Orientation change**
 
-\[
-\Delta\theta=
-\sqrt{(\theta_t-\theta_{t-1})^2+
-(\phi_t-\phi_{t-1})^2}
-\]
+```text
+Delta_theta = sqrt(
+    (theta[k] - theta[k-1])^2
+    + (phi[k] - phi[k-1])^2
+)
+```
 
-where \(\theta\) and \(\phi\) represent orientation angles. Angle wrapping must be handled when calculating differences.
+Where:
+- `theta` = one orientation angle
+- `phi` = another orientation angle
+- `Delta_theta` = change in orientation between consecutive samples
 
-Fall-like detection can combine acceleration peaks, orientation changes, and a subsequent period of low movement. A single acceleration spike does not prove that a fall occurred.
+Angle differences should account for angle wrapping, such as the transition from 179 degrees to -179 degrees.
 
-### 4. Temperature Sensor
+**Fall-event decision:** Combine acceleration, orientation change, and subsequent movement status. A single acceleration spike should not automatically be classified as a fall.
 
-**Candidate module:** MLX90614.
+### 4. Temperature Sensor — MLX90614
 
-The MLX90614 is an infrared temperature sensor. Its readings depend on the target, field of view, distance, emissivity, and surrounding conditions.
+**Purpose:** Detect temperatures above a configured threshold.
 
-A configurable temperature indicator is:
+**Formula: Temperature threshold detection**
 
-\[
-A_T=
-\begin{cases}
-1,&T>T_{\mathrm{th}}\\
-0,&T\le T_{\mathrm{th}}
-\end{cases}
-\]
+```text
+A_T[k] = 1, if T[k] > T_th
+A_T[k] = 0, otherwise
+```
 
-where \(T\) is the selected temperature measurement and \(T_{\mathrm{th}}\) is the configured threshold.
+Where:
+- `T[k]` = measured temperature
+- `T_th` = configured temperature threshold
+- `A_T[k]` = temperature-event indicator
 
-The system must distinguish between surface temperature, ambient temperature, and body temperature. An infrared surface reading should not automatically be interpreted as a medical body-temperature measurement.
+The measured temperature must be interpreted according to the sensor's placement and target. It should not automatically be treated as the worker's body temperature.
 
-### 5. PPE Monitoring
+### 5. PPE-Wear Monitoring (Optional)
 
-PPE monitoring can be implemented using suitable sensors selected for the specific item being monitored. The sensing approach may differ for a helmet, glove, or other protective equipment.
+**Purpose:** Represent whether a PPE-monitoring sensor reports the expected wearing condition.
 
-A basic binary indicator can represent the detected state:
+```text
+P[k] = 1, if wearing condition is detected
+P[k] = 0, otherwise
+```
 
-\[
-P[k]=
-\begin{cases}
-1,&\text{PPE condition detected}\\
-0,&\text{PPE condition not detected}
-\end{cases}
-\]
+Where:
+- `P[k] = 1` indicates the configured wearing condition is detected.
+- `P[k] = 0` indicates it is not detected.
 
-The meaning of this state depends on the installed sensor and its placement. The indicator should not be used until the detection method has been tested under realistic working conditions.
+The implementation depends on the selected sensor. This indicator alone does not prove that PPE is being worn correctly.
 
----
+### 6. Event Verification
+
+**Purpose:** Reduce false alarms by requiring an abnormal condition to persist for a specified duration.
+
+```text
+A_event = 1, if condition persists for T_req
+A_event = 0, otherwise
+```
+
+Where:
+- `T_req` = minimum persistence duration
+- `A_event` = verified event indicator
+
+### 7. Sensor Calibration
+
+If testing confirms that a sensor's response is approximately linear over the required range, a calibration model may be used:
+
+```text
+x = a * ADC + b
+```
+
+Where:
+- `ADC` = raw analog-to-digital converter reading
+- `a` = calibration slope
+- `b` = calibration offset
+- `x` = calibrated measurement
+
+The calibration equation and coefficients must be determined experimentally for the selected sensor and operating conditions.
 
 ## Calibration and Validation
 
