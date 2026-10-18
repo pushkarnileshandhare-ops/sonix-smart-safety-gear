@@ -176,40 +176,46 @@ Features should be described as operational only after their hardware and firmwa
 The following flowchart follows the working sequence shown in the SoniX presentation: continuous sensing, event verification, severity classification, local alerts, event logging, and online/offline data handling.
 
 ```mermaid
+## System Architecture and Working Flow
+
+```mermaid
 flowchart TD
-    A(["Power ON"]) --> B["Smart Module<br/>Mounted on Safety Vest"]
-    B --> C["Initialize ESP32-C3, Sensors,<br/>SD Card, Wi-Fi, Alerts<br/>and Power System"]
-    C --> D["Read Sensor Data Continuously<br/>Arc/UV, Gas, IMU, and Thermal"]
+    A(["Power ON"]) --> B["Smart Module Mounted on Safety Vest"]
+    B --> C["Initialize ESP32-C3, Sensors, SD Card, Wi-Fi and Alerts"]
+    C --> D["Read Sensor Data Continuously"]
 
-    D --> E1["Arc / UV Sensor<br/>Intensity + Duration"]
-    D --> E2["Gas Sensor<br/>Gas Level + Duration"]
-    D --> E3["IMU Sensor<br/>Movement + Orientation"]
-    D --> E4["Thermal Sensor<br/>Object & Ambient Temp"]
+    D --> E1["VEML6075 UV Sensor<br/>UV Intensity + Duration"]
+    D --> E2["MQ-135 Gas Sensor<br/>Gas Response + Duration"]
+    D --> E3["MPU6050 IMU Sensor<br/>Acceleration + Orientation"]
+    D --> E4["MLX90614 IR Temperature Sensor<br/>Non-Contact Object Temperature"]
 
-    E1 --> F["Event Engine"]
+    E1 --> F["Filter and Validate Sensor Readings"]
     E2 --> F
     E3 --> F
     E4 --> F
 
-    F --> G{"Abnormal Event?"}
+    F --> G["Extract Features and Apply Thresholds"]
+    G --> H{"Abnormal Event Detected?"}
 
-    G -- "No" --> H["Continue Sensing<br/>Do Not Store Event"]
-    H --> D
+    H -- "No" --> I["Continue Monitoring"]
+    I --> D
 
-    G -- "Yes" --> I["Verify Event"]
-    I --> J["Classify Severity"]
-    J --> K["Local Alert<br/>Buzzer + Vibration"]
-    K --> L["Create Timestamped Log"]
+    H -- "Yes" --> J["Verify Event and Duration"]
+    J --> K["Classify Event Severity"]
+    K --> L["Activate Buzzer and Vibration Alert"]
+    L --> M["Create Timestamped Event Log"]
 
-    L --> M{"Wi-Fi Available?"}
-    M -- "Yes" --> N["Send Event to Server"]
-    N --> O["Supervisor Dashboard"]
+    M --> N{"Wi-Fi Available?"}
+    N -- "Yes" --> O["Send Event to Firebase Server"]
+    O --> P["Supervisor Dashboard"]
 
-    M -- "No" --> P["Save Event to<br/>SD Card (Offline)"]
-    P --> Q["Automatic Sync<br/>When Wi-Fi Returns"]
-    Q --> O
+    N -- "No" --> Q["Save Event to microSD Card"]
+    Q --> R["Synchronize When Wi-Fi Returns"]
+    R --> P
 
-    O --> D
+    P --> D
+```
+
 
 ### Working Explanation
 
@@ -351,6 +357,17 @@ Where:
 - `A_T[k]` = temperature-event indicator
 
 The measured temperature must be interpreted according to the sensor's placement and target. It should not automatically be treated as the worker's body temperature.
+### IR Non-Contact Temperature Sensor — Working
+
+The **MLX90614** measures the infrared radiation emitted by an object and provides a non-contact temperature reading through its digital interface.
+
+1. The sensor measures the temperature of a target without physical contact.
+2. The ESP32-C3 reads the temperature over I2C.
+3. The firmware compares the reading with a configurable temperature threshold.
+4. If the condition persists for the required duration, the Event Engine verifies the potential thermal event.
+5. The system activates the local alert and records the event for dashboard transmission or offline storage.
+
+**Important:** The MLX90614 is suitable for measuring target surface temperature within its operating specifications. It does not directly measure electrical current or prove that wiring is electrically live. For overheating detection, position and aim the sensor toward the intended surface, and validate the readings under realistic operating conditions.
 
 ### 5. PPE-Wear Monitoring (Optional)
 
