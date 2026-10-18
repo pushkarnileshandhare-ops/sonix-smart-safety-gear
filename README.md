@@ -179,43 +179,35 @@ The following flowchart follows the working sequence shown in the SoniX presenta
 ## System Architecture and Working Flow
 
 ```mermaid
+```mermaid
 flowchart TD
     A(["Power ON"]) --> B["Smart Module Mounted on Safety Vest"]
     B --> C["Initialize ESP32-C3, Sensors, SD Card, Wi-Fi and Alerts"]
     C --> D["Read Sensor Data Continuously"]
-
-    D --> E1["VEML6075 UV Sensor<br/>UV Intensity + Duration"]
-    D --> E2["MQ-135 Gas Sensor<br/>Gas Response + Duration"]
-    D --> E3["MPU6050 IMU Sensor<br/>Acceleration + Orientation"]
-    D --> E4["MLX90614 IR Temperature Sensor<br/>Non-Contact Object Temperature"]
-
+    D --> E1["VEML6075 UV Sensor: Intensity and Duration"]
+    D --> E2["MQ-135 Gas Sensor: Gas Response and Duration"]
+    D --> E3["MPU6050 IMU: Acceleration and Orientation"]
+    D --> E4["MLX90614 IR Sensor: Non-Contact Temperature"]
     E1 --> F["Filter and Validate Sensor Readings"]
     E2 --> F
     E3 --> F
     E4 --> F
-
     F --> G["Extract Features and Apply Thresholds"]
     G --> H{"Abnormal Event Detected?"}
-
     H -- "No" --> I["Continue Monitoring"]
     I --> D
-
     H -- "Yes" --> J["Verify Event and Duration"]
     J --> K["Classify Event Severity"]
     K --> L["Activate Buzzer and Vibration Alert"]
     L --> M["Create Timestamped Event Log"]
-
     M --> N{"Wi-Fi Available?"}
-    N -- "Yes" --> O["Send Event to Firebase Server"]
+    N -- "Yes" --> O["Send Event to Firebase"]
     O --> P["Supervisor Dashboard"]
-
     N -- "No" --> Q["Save Event to microSD Card"]
-    Q --> R["Synchronize When Wi-Fi Returns"]
+    Q --> R["Sync When Wi-Fi Returns"]
     R --> P
-
     P --> D
 ```
-
 
 ### Working Explanation
 
