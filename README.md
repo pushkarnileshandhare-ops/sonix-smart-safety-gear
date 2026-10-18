@@ -520,6 +520,6 @@ This repository uses the MIT License, subject to the terms in the included `LICE
 
 ---
 
-**SoniX — Smart Connected Safety Gear for Electrical and Welding Trades**
+**TeamSoniX | SIH26243 |  K. K. Wagh Institute of Engineering Education & Research, Nashik **
 
 *Connected monitoring to support safer electrical and welding work.*
