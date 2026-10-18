@@ -178,16 +178,18 @@ The following flowchart follows the working sequence shown in the SoniX presenta
 ```mermaid
 flowchart TD
     A(["Power ON"]) --> B["Smart Module<br/>Mounted on Safety Vest"]
-    B --> C["Initialize ESP32, Sensors,<br/>SD Card, Wi-Fi, Alerts<br/>and Power System"]
-    C --> D["Read Sensor Data Continuously<br/>Arc / UV, Gas and IMU"]
+    B --> C["Initialize ESP32-C3, Sensors,<br/>SD Card, Wi-Fi, Alerts<br/>and Power System"]
+    C --> D["Read Sensor Data Continuously<br/>Arc/UV, Gas, IMU, and Thermal"]
 
     D --> E1["Arc / UV Sensor<br/>Intensity + Duration"]
     D --> E2["Gas Sensor<br/>Gas Level + Duration"]
     D --> E3["IMU Sensor<br/>Movement + Orientation"]
+    D --> E4["Thermal Sensor<br/>Object & Ambient Temp"]
 
     E1 --> F["Event Engine"]
     E2 --> F
     E3 --> F
+    E4 --> F
 
     F --> G{"Abnormal Event?"}
 
@@ -208,7 +210,6 @@ flowchart TD
     Q --> O
 
     O --> D
-```
 
 ### Working Explanation
 
