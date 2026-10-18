@@ -502,11 +502,9 @@ Move features into a **Demonstrated** section only after they are supported by h
 
 1. Finalize the hardware architecture and sensor interfaces.
 2. Complete individual sensor drivers and calibration records.
-3. Integrate and test local alerts and event storage.
-4. Develop a dashboard for sensor status and event history.
-5. Conduct controlled tests and quantify detection performance.
-6. Improve enclosure design, cable routing, comfort, and battery life.
-7. Review the design against relevant occupational safety requirements before real-world deployment.
+3. Conduct controlled tests and quantify detection performance.
+4. Improve enclosure design, cable routing, comfort, and battery life.
+5. Review the design against relevant occupational safety requirements before real-world deployment.
 
 ## 19. Security and Data Protection
 
