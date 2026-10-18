@@ -1,183 +1,91 @@
-# sonix-smart-safety-gear
-# Project Comprehensive Technical Report: SoniX (Smart Connected Safety Gear)
-
-**Smart India Hackathon | Problem Statement ID:** 26243
-
----
-
-##  1. Executive Summary & Project Description
-
-**SoniX** is an IoT-enabled, retrofittable smart safety vest and module designed to protect workers in high-risk industrial environments such as electrical maintenance, manufacturing, and welding workshops. Traditional personal protective equipment (PPE) is entirely passive—it cannot provide early warnings, record near-misses, or instantly notify supervisors during emergencies.
-
-SoniX solves this by integrating a multi-sensor hardware module into standard safety gear. It uses an **event-driven architecture**: sensors continuously monitor the environment, but the system filters out background noise and only logs and transmits **verified abnormal events** to a cloud dashboard (via Firebase) or a local MicroSD card (offline store-and-forward mode).
-
----
-
-##  2. Core Processing Unit: ESP32-C3 Mini
-
-The system is built around the **Espressif ESP32-C3** microcontroller module.
-
-* **Architecture:** 32-bit RISC-V single-core microprocessor operating up to 160 MHz.
-* **Connectivity:** Integrated 2.4 GHz Wi-Fi and Bluetooth 5 (LE), enabling real-time transmission of safety telemetry to supervisor dashboards.
-
-
-* **Power Efficiency:** Designed for low power consumption, making it ideal for battery-powered wearable safety modules equipped with USB-C charging and power-management circuitry.
-
-
-* **Interface Role:** Manages I2C and analog data acquisition from all onboard sensors, handles local logic execution, runs event verification filters, and controls local feedback actuators.
-
-
-
----
-
-##  3. Detailed Sensor Breakdown & Implementation
-
-The hardware suite utilizes robust, commercially available industrial sensors chosen for precision, low cost, and ease of retrofitting onto standard PPE vests or helmets.
-
-### 1. InvenSense MPU-6050 (Tri-Axial Accelerometer & Gyroscope)
-
-* **Purpose:** Worker fall detection, sudden impact tracking, and postural orientation monitoring.
-
-
-* **Working Principle:** Combines a 3-axis accelerometer and a 3-axis gyroscope on a single silicon die using I2C communication.
-* **Implementation & Mathematical Logic:**
-* Computes the resultant acceleration ($A_{res}$) to prevent false triggers from normal physical exertion:
-
-
-
-$$A_{res} = \sqrt{a_x^2 + a_y^2 + a_z^2}$$
-
-
-* **Fall Verification Rule:** Triggers an emergency sequence only if $A_{res} \ge 2.5\,g$ (Impact Threshold) *followed* by a tilt orientation angle change of $>60^\circ$ relative to the vertical axis within a $500\,\text{ms}$ window.
-
-
-
-
-
-### 2. Vishay VEML6075 (Ultraviolet / Arc Flash Sensor)
-
-* **Purpose:** Detecting dangerous ultraviolet (UV) radiation and sudden electrical arc flashes common in welding and high-voltage electrical environments.
-
-
-* **Working Principle:** Digital UV light sensor with I2C interface that measures UVA and UVB spectrum intensity and converts optical radiation into calibrated digital UV index data.
-* **Implementation & Mathematical Logic:**
-* **False Arc Mitigation:** Ambient workshop light or harmless sparks can cause optical spikes. SoniX applies a dual-condition filter:
-
-$$\text{Intensity}(t) > \text{UV}_{\text{threshold}} \quad \text{AND} \quad \int_{t_0}^{t_1} \text{dt} \ge t_{\text{duration\_min}}$$
-
-
-* Both intensity and time duration must be satisfied simultaneously before classifying the event as a dangerous arc exposure.
-
-
-
-
-
-### 3. Hanwei MQ-135 (Air Quality & Toxic Gas/Fume Sensor)
-
-* **Purpose:** Monitoring harmful gas leaks, toxic chemical fumes, and heavy smoke or welding gas accumulation.
-
-
-* **Working Principle:** Metal oxide semiconductor (MOS) gas sensor whose conductivity changes proportionally when exposed to target gases like carbon monoxide, alcohol, benzene, and smoke.
-* **Implementation & Mathematical Logic:**
-* Uses an analog pin on the ESP32-C3 to read raw gas concentration levels.
-
-
-* **Persistence Filter:** To prevent false alarms from transient gas puffs or wind shifts, a moving average window ($M_w$) evaluates persistence:
-
-$$M_w = \frac{1}{N} \sum_{i=0}^{N-1} S_{raw}(t-i)$$
-
-
-* If $M_w$ exceeds safe parts-per-million (PPM) thresholds for $k$ consecutive cycles, a gas hazard event is confirmed.
-
-
-
-
-
-### 4. Melexis MLX90614 (Infrared Thermal / Hot-Surface Sensor)
-
-* **Purpose:** Non-contact temperature measurement to detect hot surfaces, overheating electrical wiring, equipment failures, or abnormal worker body temperatures.
-
-
-* **Working Principle:** Infrared thermometer for non-contact temperature measurements using a thermopile detector chip sensitive to infrared radiation emitted by objects, communicating via I2C.
-* **Implementation:** Continuously monitors ambient and object temperatures; triggers a thermal alert if temperatures exceed industry safety limits (aligned with ACGIH guidelines).
-
-
-
----
-
-##  4. Peripherals, Storage, & Data Pipeline
 # SoniX — Smart Connected Safety Gear for Electrical and Welding Trades
 
-**Smart India Hackathon 2026 | Connected Worker Safety | Embedded Systems and IoT**
+**Smart India Hackathon 2026 | Problem Statement ID: 26243**
 
-## Project Overview
-
-SoniX is a smart connected safety gear concept designed to improve worker safety in electrical maintenance and welding environments. It combines sensor-based monitoring, embedded processing, local alerts, and a planned web dashboard to help workers, trainers, and site supervisors identify potentially unsafe conditions.
-
-Conventional personal protective equipment (PPE), such as helmets, gloves, safety footwear, and protective clothing, primarily provides physical protection. SoniX aims to supplement this protection with real-time environmental and motion monitoring.
-
-The system focuses on identifying unusual environmental conditions, monitoring worker movement, detecting potential fall events, and recording safety-related data for later analysis.
-
-> **Safety note:** SoniX is intended as a supplementary monitoring system. It does not replace certified PPE, workplace safety procedures, or appropriate protective equipment.
+An IoT-based worker safety monitoring system using ESP32-C3, environmental sensors, motion detection, non-contact thermal sensing, local alerts, and connected incident monitoring.
 
 ---
 
-## Problem Statement
+## 1. Project Overview
 
-Electrical maintenance and welding expose workers to hazards such as excessive heat, harmful fumes, ultraviolet radiation, and falls. Conventional PPE helps protect workers but may not provide real-time information about changing environmental conditions or automatically record safety events.
+**SoniX** is a proposed smart safety gear system designed to improve worker safety in electrical maintenance, welding workshops, manufacturing environments, and vocational training laboratories.
 
-SoniX proposes a connected safety system that monitors selected environmental and motion parameters, identifies configurable hazard conditions, records events, and communicates safety information to a dashboard.
+Traditional Personal Protective Equipment (PPE), such as safety helmets, gloves, footwear, and protective clothing, provides physical protection but generally does not monitor environmental conditions or automatically report safety-related events.
 
-The project aims to improve hazard awareness, support trainers and supervisors, and generate structured safety data that can assist with workplace safety reviews and training improvements.
+SoniX supplements conventional PPE with a sensor-based monitoring module that collects environmental and motion data, evaluates configurable hazard conditions, alerts workers, and records potential safety incidents.
 
----
+The proposed system uses an ESP32-C3 controller to process sensor measurements and supports planned wireless monitoring through a web dashboard.
 
-## Solution Overview
+> **Safety disclaimer:** SoniX is a supplementary monitoring prototype. It does not replace certified PPE, electrical isolation procedures, gas detectors, workplace safety standards, or trained supervision.
 
-The proposed system follows a modular architecture:
+## 2. Problem Statement
 
-1. Sensors collect environmental and motion measurements.
-2. The ESP32-class controller reads supported sensor outputs.
-3. Calibration and filtering prepare readings for processing.
-4. Feature extraction calculates useful values from raw measurements.
-5. Configurable hazard rules identify potential unsafe conditions.
-6. Local alert hardware can notify the worker when installed.
-7. Event data can be stored on a microSD card.
-8. A planned web dashboard can display sensor readings and event history.
+Electrical maintenance and welding activities expose workers to multiple hazards, including:
 
-**Core pipeline:**
+- Excessive heat and overheating surfaces.
+- Harmful gases, fumes, and smoke.
+- Ultraviolet radiation and welding arc exposure.
+- Sudden impacts, unusual movement, and potential falls.
+- Delayed communication of incidents to supervisors.
 
-`Sense → Validate → Calibrate → Filter → Extract Features → Evaluate Hazard Rules → Generate Alert → Log Event → Upload Data → Dashboard`
+Conventional PPE provides essential protection but may not provide real-time environmental monitoring, automatic event recording, or connected incident reporting.
 
-The exact controller, sensor modules, alert hardware, and communication protocol will be confirmed during implementation.
+SoniX proposes an integrated monitoring system to identify selected abnormal conditions, provide local warnings, and generate structured data for safety reviews and training improvements.
 
----
+## 3. Project Objectives
 
-## Key Features
+- Monitor selected environmental conditions continuously.
+- Measure ultraviolet radiation indicators during welding-related activities.
+- Monitor gas-sensor response for changes in air quality.
+- Measure target surface temperature using a non-contact infrared sensor.
+- Track worker movement and identify potential fall-like events.
+- Generate local alerts for verified abnormal conditions.
+- Record timestamped safety events.
+- Support online data transmission and offline event storage.
+- Provide structured safety information for trainers and supervisors.
 
-| Feature | Purpose |
-|---|---|
-| UV monitoring | Monitors ultraviolet sensor readings and exposure indicators |
-| Gas and fume indication | Identifies changes in the response of the selected gas sensor |
-| Temperature monitoring | Tracks temperature measurements from the selected sensor |
-| Motion monitoring | Measures acceleration and angular movement |
-| Fall-like event detection | Uses motion features to identify potential fall events |
-| PPE monitoring | Intended to monitor selected PPE-wearing conditions using suitable sensors |
-| Event logging | Records timestamped measurements and potential hazard events |
-| Connected monitoring | Supports planned transmission of safety data to a web dashboard |
-| Modular firmware | Allows sensor drivers and processing functions to be developed and tested independently |
+## 4. Proposed Hardware Components
 
-Features should be described as operational only after their hardware and firmware have been implemented and tested.
+| Component | Purpose | Interface |
+|---|---|---|
+| ESP32-C3 | Main controller and event-processing unit | Digital, analog, I²C, Wi-Fi |
+| VEML6075 | UV intensity monitoring | I²C |
+| MQ-135 | Gas and air-quality response monitoring | Analog output, depending on module |
+| MPU6050 | Acceleration and orientation measurement | I²C |
+| MLX90614 | Non-contact infrared target-temperature measurement | I²C |
+| Buzzer | Audible warning | Digital output through suitable driver |
+| Vibration motor | Physical warning to the worker | Driver circuit |
+| MicroSD module | Local event storage, if integrated | SPI |
+| Battery and power circuitry | Portable power supply | Board-specific |
 
----
+**Hardware note:** Confirm the exact module versions, pin assignments, supply requirements, libraries, and interface compatibility before assembling the system.
 
-## 5. System Architecture and Working Flow
+## 5. System Architecture
 
-The following flowchart follows the working sequence shown in the SoniX presentation: continuous sensing, event verification, severity classification, local alerts, event logging, and online/offline data handling.
+The proposed system follows this processing pipeline:
+
+**Sense → Validate → Calibrate → Filter → Extract Features → Evaluate Hazard Rules → Verify Event → Generate Alert → Log Event → Upload or Store Offline → Dashboard**
+
+### Working sequence
+
+1. **Power ON:** The safety module is switched on.
+2. **Initialization:** The ESP32-C3 initializes the configured sensors, storage, network, and alert hardware.
+3. **Sensor acquisition:** The controller reads UV, gas-response, motion, and thermal measurements.
+4. **Validation:** Invalid, unavailable, or out-of-range readings are identified.
+5. **Filtering:** Measurements are processed to reduce noise and transient fluctuations.
+6. **Feature extraction:** The firmware calculates quantities such as acceleration magnitude, temperature changes, and threshold duration.
+7. **Hazard evaluation:** The measurements are compared with configured thresholds.
+8. **Event verification:** Persistence or confirmation rules help reduce false alarms.
+9. **Local alert:** A buzzer and vibration motor provide warnings when installed.
+10. **Event logging:** The system records relevant measurements and event information.
+11. **Connectivity check:** If Wi-Fi is available, the event can be sent to the configured server.
+12. **Offline handling:** If connectivity is unavailable, the event can be saved locally and synchronized later when implemented.
+
+## 6. System Flowchart
+
+The following Mermaid flowchart represents the proposed SoniX system.
 
 ```mermaid
-## System Architecture and Working Flow
-
 flowchart TD
     A(["Power ON"]) --> B["Smart Module Mounted on Safety Vest"]
     B --> C["Initialize ESP32-C3, Sensors, SD Card, Wi-Fi and Alerts"]
@@ -186,7 +94,7 @@ flowchart TD
     D --> E1["VEML6075 UV Sensor: Intensity and Duration"]
     D --> E2["MQ-135 Gas Sensor: Gas Response and Duration"]
     D --> E3["MPU6050 IMU: Acceleration and Orientation"]
-    D --> E4["MLX90614 IR Sensor: Non-Contact Temperature"]
+    D --> E4["MLX90614 IR Non-Contact Thermal Sensor: Surface Temperature"]
 
     E1 --> F["Filter and Validate Sensor Readings"]
     E2 --> F
@@ -213,112 +121,72 @@ flowchart TD
     R --> P
 
     P --> D
-### Working Explanation
+```
 
-**Step 1 — Power ON**
+## 7. Sensor Descriptions and Mathematical Models
 
-The smart safety module is switched on.
+The equations below are proposed processing models. Thresholds and calibration coefficients must be established experimentally before the measurements are used for safety decisions.
 
-**Step 2 — System initialization**
+### 7.1 VEML6075 — UV Sensor
 
-The controller initializes the configured sensors, microSD card, Wi-Fi connection, alert devices, and power system.
+**Purpose:** Monitor UV-related readings and determine how long a configured threshold is exceeded.
 
-**Step 3 — Continuous sensor reading**
-
-The system reads:
-
-- **Arc/UV sensor:** UV-related intensity indicators and their duration.
-- **Gas sensor:** changes in gas-sensor response and how long the condition persists.
-- **IMU sensor:** worker movement, acceleration, and orientation.
-
-**Step 4 — Event engine**
-
-The controller processes the readings and compares them with configured rules.
-
-**Step 5 — Abnormal-event decision**
-
-- If no abnormal condition is detected, the system continues sensing without creating an event record.
-- If a potential abnormal condition is detected, the system proceeds to event verification.
-
-**Step 6 — Verify and classify**
-
-The event engine checks the relevant measurement, duration, and confirmation criteria. A verified event is assigned an application-defined severity.
-
-**Step 7 — Local alert**
-
-The buzzer and vibration motor notify the worker, provided these components are installed and enabled.
-
-**Step 8 — Create event log**
-
-The system records a timestamp and relevant sensor readings for the verified event.
-
-**Step 9 — Online/offline data handling**
-
-- **Wi-Fi available:** send the event to the server for display on the supervisor dashboard.
-- **Wi-Fi unavailable:** save the event on the microSD card and synchronize it when connectivity returns.
-
-*Implementation note: This flowchart represents the proposed system. Server transmission, automatic synchronization, and event verification must be validated in the implemented prototype.*
-
-## Sensor Mathematical Models
-
-### 1. UV Sensor — VEML6075
-
-**Purpose:** Detect elevated UV intensity and measure how long the intensity remains above a threshold.
-
-**Formula 1: UV threshold detection**
+Threshold detection:
 
 ```text
 A_U[k] = 1, if U[k] > U_th
 A_U[k] = 0, otherwise
 ```
 
-Where:
-- `U[k]` = UV reading at sample `k`
-- `U_th` = configured UV threshold
-- `A_U[k]` = threshold indicator (1 = above threshold, 0 = normal)
-
-**Formula 2: Duration above the threshold**
+Duration above threshold:
 
 ```text
 T_U = sum(A_U[k] * delta_t)
 ```
 
 Where:
-- `T_U` = accumulated time above the UV threshold
-- `delta_t` = time interval between consecutive samples
 
-### 2. Gas Sensor — MQ-135
+- `U[k]` = UV reading at sample `k`.
+- `U_th` = configured UV threshold.
+- `A_U[k]` = threshold indicator.
+- `delta_t` = sampling interval.
+- `T_U` = accumulated time above the threshold.
 
-**Purpose:** Identify an increase in gas-sensor response relative to its baseline.
+The sensor output, units, and calibration must be verified before interpreting readings as exposure measurements.
 
-**Formula: Percentage change from baseline**
+### 7.2 MQ-135 — Gas Sensor
+
+**Purpose:** Identify changes in gas-sensor response relative to a baseline.
+
+Percentage change from baseline:
 
 ```text
 Delta_G_percent = ((G[k] - G_base) / abs(G_base)) * 100
 ```
 
 Where:
-- `G[k]` = current sensor response
-- `G_base` = baseline sensor response
-- `Delta_G_percent` = percentage change from baseline
 
-**Important:** This calculation represents a relative sensor-response change, not gas concentration in ppm. Reliable concentration estimates require appropriate calibration and gas-specific validation.
+- `G[k]` = current sensor response.
+- `G_base` = baseline response.
+- `Delta_G_percent` = relative percentage change.
 
-### 3. Motion Sensor — MPU6050
+This equation measures relative response change, not gas concentration in parts per million (ppm).
 
-**Purpose:** Analyze acceleration and orientation changes to identify unusual movement or possible fall events.
+The MQ-135 responds to multiple gases and environmental factors. Reliable gas-specific concentration estimates require appropriate calibration and validation.
 
-**Formula 1: Acceleration magnitude**
+### 7.3 MPU6050 — Motion Sensor
+
+**Purpose:** Measure worker movement, acceleration, and orientation changes to identify potential fall-like events.
+
+Acceleration magnitude:
 
 ```text
 a_mag = sqrt(ax^2 + ay^2 + az^2)
 ```
 
-Where:
-- `ax`, `ay`, `az` = acceleration readings along the three axes
-- `a_mag` = total acceleration magnitude
+Where `ax`, `ay`, and `az` are the acceleration readings along the three axes.
 
-**Formula 2: Orientation change**
+Example orientation-change calculation:
 
 ```text
 Delta_theta = sqrt(
@@ -328,19 +196,18 @@ Delta_theta = sqrt(
 ```
 
 Where:
-- `theta` = one orientation angle
-- `phi` = another orientation angle
-- `Delta_theta` = change in orientation between consecutive samples
 
-Angle differences should account for angle wrapping, such as the transition from 179 degrees to -179 degrees.
+- `theta` = one orientation angle.
+- `phi` = another orientation angle.
+- `Delta_theta` = orientation change between samples.
 
-**Fall-event decision:** Combine acceleration, orientation change, and subsequent movement status. A single acceleration spike should not automatically be classified as a fall.
+Angle differences must account for wraparound. Potential fall detection should combine acceleration, orientation, and subsequent movement information rather than relying on a single acceleration spike.
 
-### 4. Temperature Sensor — MLX90614
+### 7.4 MLX90614 — Non-Contact Infrared Thermal Sensor
 
-**Purpose:** Detect temperatures above a configured threshold.
+**Purpose:** Measure the temperature of a target without physical contact, such as a selected surface that may be overheating.
 
-**Formula: Temperature threshold detection**
+Temperature threshold detection:
 
 ```text
 A_T[k] = 1, if T[k] > T_th
@@ -348,41 +215,42 @@ A_T[k] = 0, otherwise
 ```
 
 Where:
-- `T[k]` = measured temperature
-- `T_th` = configured temperature threshold
-- `A_T[k]` = temperature-event indicator
 
-The measured temperature must be interpreted according to the sensor's placement and target. It should not automatically be treated as the worker's body temperature.
-### IR Non-Contact Temperature Sensor — Working
+- `T[k]` = measured target temperature.
+- `T_th` = configured temperature threshold.
+- `A_T[k]` = temperature-event indicator.
 
-The **MLX90614** measures the infrared radiation emitted by an object and provides a non-contact temperature reading through its digital interface.
+**Working principle:**
 
-1. The sensor measures the temperature of a target without physical contact.
-2. The ESP32-C3 reads the temperature over I2C.
-3. The firmware compares the reading with a configurable temperature threshold.
-4. If the condition persists for the required duration, the Event Engine verifies the potential thermal event.
-5. The system activates the local alert and records the event for dashboard transmission or offline storage.
+1. The sensor detects infrared radiation emitted by the target.
+2. Its thermopile sensing element converts the received radiation into an electrical signal.
+3. Internal electronics process the signal and provide a temperature reading.
+4. The ESP32-C3 reads the measurement through the I²C interface.
+5. Firmware compares the reading with a configured threshold.
+6. A persistent abnormal reading can be evaluated by the event-verification logic.
+7. A verified event can activate local alerts and be recorded for monitoring.
 
-**Important:** The MLX90614 is suitable for measuring target surface temperature within its operating specifications. It does not directly measure electrical current or prove that wiring is electrically live. For overheating detection, position and aim the sensor toward the intended surface, and validate the readings under realistic operating conditions.
+**Important limitations:**
 
-### 5. PPE-Wear Monitoring (Optional)
+- The sensor measures the target within its field of view, not necessarily the surrounding air temperature.
+- A target-temperature reading is not automatically a worker body-temperature reading.
+- Sensor positioning, target distance, field of view, emissivity, and environmental conditions affect measurements.
+- Thresholds must be validated for the intended target and operating environment.
 
-**Purpose:** Represent whether a PPE-monitoring sensor reports the expected wearing condition.
+### 7.5 Optional PPE-Wear Monitoring
+
+A suitable sensor may be used to indicate whether a specified PPE-wearing condition is detected.
 
 ```text
 P[k] = 1, if wearing condition is detected
 P[k] = 0, otherwise
 ```
 
-Where:
-- `P[k] = 1` indicates the configured wearing condition is detected.
-- `P[k] = 0` indicates it is not detected.
+The specific implementation depends on the selected sensor. This indicator alone does not prove that PPE is being worn correctly.
 
-The implementation depends on the selected sensor. This indicator alone does not prove that PPE is being worn correctly.
+### 7.6 Event Verification
 
-### 6. Event Verification
-
-**Purpose:** Reduce false alarms by requiring an abnormal condition to persist for a specified duration.
+A simple persistence model is:
 
 ```text
 A_event = 1, if condition persists for T_req
@@ -390,137 +258,112 @@ A_event = 0, otherwise
 ```
 
 Where:
-- `T_req` = minimum persistence duration
-- `A_event` = verified event indicator
 
-### 7. Sensor Calibration
+- `T_req` = minimum configured persistence duration.
+- `A_event` = verified-event indicator.
 
-If testing confirms that a sensor's response is approximately linear over the required range, a calibration model may be used:
+Different hazard categories may require different thresholds and confirmation rules.
+
+### 7.7 Sensor Calibration
+
+For a sensor whose response has been verified as approximately linear over the required range:
 
 ```text
 x = a * ADC + b
 ```
 
 Where:
-- `ADC` = raw analog-to-digital converter reading
-- `a` = calibration slope
-- `b` = calibration offset
-- `x` = calibrated measurement
 
-The calibration equation and coefficients must be determined experimentally for the selected sensor and operating conditions.
+- `ADC` = raw analog-to-digital converter reading.
+- `a` = calibration slope.
+- `b` = calibration offset.
+- `x` = calibrated measurement.
 
-## Calibration and Validation
+This model should only be used when the sensor's response supports a linear approximation. Other sensors may require nonlinear calibration.
 
-Calibration is required before sensor outputs are interpreted as physical measurements or used for safety decisions.
+## 8. Calibration and Validation
 
-### General calibration model
+Before using sensor outputs for hazard decisions:
 
-For a sensor with a verified linear response:
-
-\[
-x=a\cdot ADC+b
-\]
-
-where:
-
-- \(ADC\) is the raw digital reading.
-- \(a\) is the scale factor.
-- \(b\) is the offset.
-- \(x\) is the calibrated measurement.
-
-This model should be used only when a linear relationship has been established. Nonlinear sensors may require a different calibration function.
-
-### Proposed calibration workflow
-
-1. Confirm the exact sensor module and its datasheet.
-2. Verify the power supply, interface, and wiring.
+1. Confirm the sensor model and consult its datasheet.
+2. Verify supply voltage, interface, and wiring.
 3. Collect readings under known reference conditions.
-4. Establish the calibration function and measurement units.
+4. Determine the calibration function and units.
 5. Evaluate repeatability, drift, noise, and response time.
-6. Establish application-specific thresholds using appropriate references and controlled tests.
-7. Test event detection, persistence, and recovery behavior.
+6. Establish configurable thresholds through controlled tests.
+7. Test event persistence, recovery, and invalid-sensor handling.
 8. Document test conditions, results, and limitations.
 
-### Acceptance criteria
+### Acceptance checklist
 
-Each sensor should have documented evidence of:
+- [ ] Sensors initialize and communicate correctly.
+- [ ] Measurement ranges and units are documented.
+- [ ] Readings are repeatable under reference conditions.
+- [ ] Disconnected or invalid sensors are reported appropriately.
+- [ ] Event detection and recovery have been tested.
+- [ ] False alarms and missed events have been evaluated.
+- [ ] Local alerts work with the actual hardware.
+- [ ] Offline logging and synchronization have been tested.
 
-- Correct initialization and communication.
-- Valid measurement ranges and units.
-- Repeatable response under reference conditions.
-- Defined behavior for disconnected or invalid sensors.
-- Verified event detection and recovery.
-- Appropriate false-alarm and missed-event testing.
+## 9. Firmware Decision Logic
 
-Thresholds should remain configurable and unvalidated until the relevant calibration and safety testing have been completed.
-
----
-
-## Firmware Decision Logic
-
-The proposed event-processing sequence is:
+The proposed firmware sequence is:
 
 1. Initialize the controller and enabled sensor drivers.
 2. Acquire sensor readings at configured intervals.
 3. Validate measurement ranges and sensor status.
 4. Apply calibration and filtering.
-5. Calculate derived features, such as acceleration magnitude.
-6. Compare supported measurements against configured rules.
-7. Apply persistence or confirmation logic where appropriate.
-8. Assign a candidate event type and severity.
+5. Calculate derived features.
+6. Evaluate configurable hazard rules.
+7. Apply persistence and confirmation logic.
+8. Assign an event type and application-defined severity.
 9. Activate available local alert hardware.
-10. Store the event and associated readings.
-11. Attempt dashboard transmission when connectivity is available.
+10. Store the event and associated measurements.
+11. Attempt transmission when connectivity is available.
 12. Retain unsent events for later synchronization.
 
-Invalid measurements should be marked as unavailable rather than silently treated as normal readings.
+Invalid measurements must be marked unavailable or erroneous rather than silently treated as normal readings.
 
----
+## 10. Event Data and Logging
 
-## Event Data and Logging
-
-A proposed event record may contain:
+A proposed event record can contain the following fields:
 
 | Field | Description |
 |---|---|
-| `timestamp` | Event time, when a reliable time source is available |
+| `timestamp` | Event time, if a reliable time source is available |
 | `sensor_id` | Identifier of the reporting sensor |
-| `event_type` | Sensor anomaly or candidate hazard category |
-| `raw_value` | Original sensor reading, where useful |
+| `event_type` | Potential hazard or sensor anomaly |
+| `raw_value` | Original sensor reading |
 | `calibrated_value` | Calibrated measurement, if available |
 | `unit` | Measurement unit |
 | `threshold` | Active configured threshold |
-| `duration_ms` | Duration of the detected condition, if measured |
+| `duration_ms` | Duration of the condition, if measured |
 | `severity` | Application-defined event classification |
 | `sensor_status` | Valid, unavailable, or error |
 | `sync_status` | Pending, uploaded, or upload failed |
 
-Measured values, calculated features, and synthetic test data should be clearly distinguished.
+Actual sensor measurements must be distinguished from synthetic or example test data.
 
----
+## 11. Proposed Technology Stack
 
-## Technology Stack
-
-| Category | Proposed Technology |
+| Category | Technology |
 |---|---|
-| Embedded controller | ESP32-class development board; exact model to be confirmed |
-| Programming | C/C++ |
-| Embedded development | Arduino IDE or PlatformIO |
-| Motion sensing | MPU6050 candidate |
-| Gas sensing | MQ-135 candidate |
-| UV sensing | VEML6075 candidate |
-| Temperature sensing | MLX90614 candidate |
-| PPE monitoring | Sensor selection depends on the monitoring method |
-| Data storage | microSD module, if integrated |
-| Wireless communication | Wi-Fi, if supported and implemented |
-| Dashboard | Web-based monitoring interface, planned |
-| Testing | Datasheets, calibration records, sensor test logs, and controlled test procedures |
+| Embedded controller | ESP32-C3 |
+| Programming language | C/C++ |
+| Development environment | Arduino IDE or PlatformIO |
+| Motion sensing | MPU6050 |
+| Gas-response monitoring | MQ-135 |
+| UV monitoring | VEML6075 |
+| Non-contact thermal monitoring | MLX90614 |
+| Local storage | MicroSD, if integrated |
+| Wireless communication | Wi-Fi, if implemented |
+| Cloud data service | Firebase, planned |
+| Dashboard | Web-based supervisor dashboard, planned |
+| Validation | Datasheets, calibration records, and controlled tests |
 
-The listed modules are candidates from the preliminary design and are not confirmation that all hardware has been integrated or tested.
+The proposed components are not confirmation that every feature has been implemented or tested.
 
----
-
-## Repository Structure
+## 12. Repository Structure
 
 ```text
 SoniX-Smart-Connected-Safety-Gear/
@@ -555,56 +398,71 @@ SoniX-Smart-Connected-Safety-Gear/
 └── LICENSE
 ```
 
-Adjust the directory and file names to match the actual repository.
-
----
-
-## Getting Started
+## 13. Getting Started
 
 ### Prerequisites
 
-- Compatible development computer.
-- Selected ESP32 development board.
-- Datasheets for confirmed sensor modules.
+- A compatible development computer.
+- An ESP32-C3 development board.
+- Confirmed sensor modules and their datasheets.
 - Appropriate power supply and interface components.
 - Arduino IDE or PlatformIO.
 - Serial monitor for debugging.
-- Optional microSD module and dashboard endpoint.
+- Optional MicroSD module and dashboard endpoint.
 
-### Initial Firmware Setup
+### Initial setup
 
-1. Confirm the controller model and board configuration.
-2. Install the selected development environment.
+1. Confirm the exact controller and board configuration.
+2. Install the development environment.
 3. Verify basic controller operation using serial output.
 4. Connect and test each sensor independently.
-5. Confirm sensor addresses, pins, interface type, and output units.
+5. Confirm sensor addresses, pins, interface types, and output units.
 6. Implement and test calibration functions.
-7. Enable hazard rules only after verifying the associated inputs.
+7. Enable hazard rules only after verifying their inputs.
 8. Test event logging and alert outputs.
 9. Integrate wireless communication and the dashboard.
-10. Perform controlled system-level tests and document the results.
+10. Perform controlled system-level tests and document results.
 
-A successful firmware compilation alone does not establish that the complete safety system is operational.
+A successful firmware compilation does not establish that the complete safety system is operational.
 
----
+## 14. GitHub Setup
 
-## Feasibility and Risk Mitigation
+Create a repository named:
 
-| Challenge | Mitigation |
+`SoniX-Smart-Connected-Safety-Gear`
+
+Suggested description:
+
+`IoT-based smart safety gear using ESP32-C3, UV, gas, motion, and non-contact thermal sensors for worker safety monitoring.`
+
+To upload the project using Git:
+
+```bash
+git init
+git add .
+git commit -m "Initial SoniX safety gear repository"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/SoniX-Smart-Connected-Safety-Gear.git
+git push -u origin main
+```
+
+Replace `YOUR-USERNAME` with your GitHub username. Create the remote repository before pushing, and avoid creating conflicting starter files on GitHub if the local project already contains them.
+
+## 15. Feasibility and Risk Mitigation
+
+| Challenge | Proposed mitigation |
 |---|---|
-| Unconfirmed sensor hardware | Finalize modules and document datasheets before enabling drivers |
-| False alarms from environmental interference | Use calibration, filtering, persistence checks, and field testing |
-| Gas sensor lacks gas specificity | Use suitable gas-specific sensors for the hazards being measured |
-| UV readings lack calibrated units | Confirm sensor output and calibrate before calculating exposure |
-| Fall detection uncertainty | Combine motion features and validate against representative movements |
-| Temperature readings depend on target conditions | Verify the intended measurement type and operating conditions |
-| Wireless connection failure | Retain local event records and retry synchronization |
-| Limited battery life | Measure actual power consumption and optimize sampling and communication |
-| Safety-critical misuse | Treat the system as supplementary monitoring, not as certified protection |
+| Unconfirmed sensor hardware | Confirm module versions and datasheets |
+| Environmental interference | Use calibration, filtering, persistence checks, and field testing |
+| Gas sensor lacks gas specificity | Select suitable gas-specific sensors for the intended hazards |
+| UV readings lack validated exposure units | Confirm output units and calibration |
+| Fall detection uncertainty | Combine motion features and validate representative movements |
+| Temperature readings depend on target conditions | Validate sensor position, target, and operating conditions |
+| Wireless failure | Retain local records and implement synchronization retries |
+| Limited battery life | Measure actual power consumption and optimize sampling |
+| Safety-critical misuse | Treat the prototype as supplementary monitoring |
 
----
-
-## Impact and Applications
+## 16. Applications
 
 Potential applications include:
 
@@ -615,72 +473,55 @@ Potential applications include:
 - Worker-safety demonstrations and research prototypes.
 - Safety-event logging for training and hazard analysis.
 
-SoniX aims to improve awareness of selected environmental and motion-related hazards while generating structured data that can support safety reviews and future training improvements.
+## 17. Current Prototype Scope
 
----
-
-## Current Prototype Scope
-
-### Planned Capabilities
+### Planned capabilities
 
 - Sensor acquisition and calibration framework.
-- Temperature, gas-response, UV, and motion monitoring.
+- UV, gas-response, temperature, and motion monitoring.
 - Configurable threshold and persistence-based event logic.
 - Potential fall-event detection.
-- PPE monitoring using suitable sensors.
+- Optional PPE-wear monitoring.
 - Event records for local storage.
 - Wireless transmission and dashboard integration.
 
-### Items to Finalize
+### Items to finalize
 
-- Final controller and board selection.
-- Confirmation of sensor models and pin assignments.
+- Confirmed controller and sensor models.
+- Pin assignments and sensor libraries.
 - Calibration coefficients and validated measurement units.
-- PPE monitoring method and sensor placement.
+- PPE-monitoring method and sensor placement.
 - Alert hardware and power architecture.
-- microSD integration and data-integrity testing.
+- MicroSD integration and data-integrity testing.
 - Dashboard API, authentication, and secure communication.
 - Controlled testing and documented validation.
 
-Capabilities should be moved into a **Demonstrated** section only when supported by actual hardware tests, firmware results, or reproducible simulation evidence.
+Move features into a **Demonstrated** section only after they are supported by hardware tests, firmware results, or reproducible simulation evidence.
 
----
-
-## Future Development
+## 18. Future Development
 
 1. Finalize the hardware architecture and sensor interfaces.
 2. Complete individual sensor drivers and calibration records.
 3. Integrate and test local alerts and event storage.
-4. Develop the dashboard for sensor status and event history.
+4. Develop a dashboard for sensor status and event history.
 5. Conduct controlled tests and quantify detection performance.
-6. Improve enclosure design, cable routing, wearability, and battery life.
+6. Improve enclosure design, cable routing, comfort, and battery life.
 7. Review the design against relevant occupational safety requirements before real-world deployment.
 
----
+## 19. Security and Data Protection
 
-## License
+- Never commit Wi-Fi passwords, private keys, or Firebase service-account credentials.
+- Use secure authentication and communication for dashboard integration.
+- Restrict access to worker incident records.
+- Avoid publishing personally identifiable worker data in sample datasets.
+- Document the handling and retention of recorded safety data.
 
-Add the appropriate open-source license file after selecting the license terms for the project.
+## 20. License
+
+This repository uses the MIT License, subject to the terms in the included `LICENSE` file.
 
 ---
 
 **SoniX — Smart Connected Safety Gear for Electrical and Welding Trades**
 
 *Connected monitoring to support safer electrical and welding work.*
-* **Local Feedback Actuators:**
-* **Piezo Buzzer & Vibration Motor:** Provide instant physical and acoustic warnings directly to the worker on the vest, ensuring they react immediately even in loud industrial settings.
-
-
-
-
-* **Offline Storage (MicroSD Card Module):**
-* Connected via SPI to the ESP32-C3.
-
-
-* Implements an **Offline-First Store-and-Forward** mechanism. If Wi-Fi connectivity fails in remote parts of a workshop or site, all verified incident logs and timestamps are safely stored locally on the SD card and automatically synced to the Firebase cloud dashboard once connection is re-established.
-
-
-
-
-* **Cloud Integration & Dashboard:**
-* Leverages ESP32-C3 Wi-Fi to push structured JSON safety data packets to Firebase, powering a real-time web dashboard for supervisors to view live alerts, near-miss analytics, and compliance logs.
