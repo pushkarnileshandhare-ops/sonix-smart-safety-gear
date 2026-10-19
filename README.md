@@ -446,8 +446,9 @@ git remote add origin https://github.com/YOUR-USERNAME/SoniX-Smart-Connected-Saf
 git push -u origin main
 ```
 
-Replace `YOUR-USERNAME` with your GitHub username. Create the remote repository before pushing, and avoid creating conflicting starter files on GitHub if the local project already contains them.
 
+## Simulation 
+[Open SONiX Simulation](https://velxio.dev/kholambedevansh/teamsonix/)
 ## 15. Feasibility and Risk Mitigation
 
 | Challenge | Proposed mitigation |
