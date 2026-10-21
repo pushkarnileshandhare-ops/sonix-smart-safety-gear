@@ -296,19 +296,7 @@ Append Record to Micro SD Card
 Check Write Result and Handle Errors
 ```
 
-### Integration and Validation Checklist
 
-- [ ] Confirm the SD module's supported supply voltage and logic levels.
-- [ ] Select SPI pins that do not conflict with existing components or board-reserved pins.
-- [ ] Format the card using a supported file system.
-- [ ] Initialize the SD card and verify file access.
-- [ ] Write the CSV header when the file is first created or is empty.
-- [ ] Append sensor readings at a defined interval.
-- [ ] Handle card initialization and file-write errors.
-- [ ] Check the saved CSV file on a computer for consistent columns and records.
-- [ ] Document timestamps, units, calibration settings, and alert definitions.
-
-The Micro SD card is an optional local data-logging feature. It does not replace the warning indicators or make the prototype a certified safety device.
 
 ## MCU Peripheral Configuration
 
