@@ -34,6 +34,8 @@ The system is designed around an ESP32-C3 Mini microcontroller and integrates en
 | MLX90614 temperature sensor module | 1 | Non-contact infrared temperature measurement |
 | MQ-7 gas sensor module | 1 | Carbon monoxide sensing, subject to calibration and operating conditions |
 | MQ-135 gas sensor module | 1 | Broad air-quality response to selected gases |
+| Micro SD card reader module | 1 | Local storage of sensor readings and safety-event logs |
+| Micro SD card | 1 | Stores logged sensor data in CSV format |
 | Red LED | 1 | Warning indicator |
 | Blue LED | 1 | Secondary status indicator |
 | Green LED | 1 | Normal-operation indicator |
@@ -180,6 +182,98 @@ MQ-7 modules require a specified heater operating cycle and calibration procedur
 This sensor require proper callibaration and validation
 
 ---
+
+---
+
+### 6. Micro SD Card Module — Local Data Logging
+
+The Micro SD card module provides local storage for sensor readings and safety events. It can retain prototype test data for later analysis, even when Wi-Fi telemetry is unavailable.
+
+### Hardware Requirements
+
+| Item | Specification |
+|---|---|
+| Module | Micro SD card reader module with SPI interface |
+| Storage | Micro SD card formatted as FAT32, subject to module compatibility |
+| Communication | SPI |
+| Controller | ESP32-C3 Mini |
+| Purpose | Store timestamped sensor readings and alert events |
+
+### Proposed SPI Connections
+
+The following GPIO assignments are examples only. Verify them against the exact ESP32-C3 Mini board and the existing pin assignments before wiring.
+
+| SD Card Module Pin | Proposed ESP32-C3 Mini Connection | Function |
+|---|---|---|
+| CS / SS | GPIO7 | Selects the SD card module |
+| SCK / CLK | GPIO0 | SPI clock |
+| MISO / DO | GPIO2 | Data from SD card to controller |
+| MOSI / DI | GPIO20 | Data from controller to SD card |
+| VCC | Module-rated supply | Power supply |
+| GND | GND | Common ground |
+
+> **Pin-map warning:** These example assignments conflict with existing assignments in the hardware table: GPIO7 is assigned to the green LED, GPIO0 to the MQ-7 sensor, and GPIO2 to the buzzer. Select available GPIOs, update the pin map and firmware together, and verify the exact board pinout before connecting the module. Ensure all SD card signals are compatible with the ESP32-C3's 3.3 V logic.
+
+### Data Logging Format
+
+The firmware can store sensor readings in a CSV file named `sonix_log.csv`.
+
+| Field | Description |
+|---|---|
+| `elapsed_ms` | Milliseconds since the controller started |
+| `object_temp_c` | MLX90614 object temperature in °C |
+| `ambient_temp_c` | Ambient temperature, if supported and collected |
+| `accel_y` | MPU6050 Y-axis acceleration |
+| `mq7_adc` | MQ-7 ADC reading; not calibrated CO concentration |
+| `mq135_adc` | MQ-135 ADC reading |
+| `uva` | VEML6075 UV-A reading |
+| `uvb` | VEML6075 UV-B reading |
+| `uv_index` | Calculated UV index, if implemented |
+| `alert_level` | Current firmware alert classification |
+| `status` | Operating status or event description |
+
+Example CSV header:
+
+```csv
+elapsed_ms,object_temp_c,ambient_temp_c,accel_y,mq7_adc,mq135_adc,uva,uvb,uv_index,alert_level,status
+```
+
+The fields must match the measurements actually collected by the firmware. Raw sensor values must not be presented as calibrated measurements without appropriate validation.
+
+### Logging Workflow
+
+```text
+Read Sensor Measurements
+          |
+          v
+Validate and Process Readings
+          |
+          v
+Evaluate Alert Conditions
+          |
+          v
+Prepare CSV Record
+          |
+          v
+Append Record to Micro SD Card
+          |
+          v
+Check Write Result and Handle Errors
+```
+
+### Integration and Validation Checklist
+
+- [ ] Confirm the SD module's supported supply voltage and logic levels.
+- [ ] Select SPI pins that do not conflict with existing components or board-reserved pins.
+- [ ] Format the card using a supported file system.
+- [ ] Initialize the SD card and verify file access.
+- [ ] Write the CSV header when the file is first created or is empty.
+- [ ] Append sensor readings at a defined interval.
+- [ ] Handle card initialization and file-write errors.
+- [ ] Check the saved CSV file on a computer for consistent columns and records.
+- [ ] Document timestamps, units, calibration settings, and alert definitions.
+
+The Micro SD card is an optional local data-logging feature. It does not replace the warning indicators or make the prototype a certified safety device.
 
 ## MCU Peripheral Configuration
 
