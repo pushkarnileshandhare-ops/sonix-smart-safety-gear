@@ -177,9 +177,7 @@ MQ-7 modules require a specified heater operating cycle and calibration procedur
 | MCU input | ADC through a suitable voltage-conditioning stage |
 | Application | Broad response to selected air contaminants |
 
-The MQ-135 responds to multiple gases and environmental conditions. It cannot independently identify a specific welding contaminant or provide reliable ppm readings without appropriate calibration and validation.
-
-For occupational safety, use appropriately rated and calibrated detectors when a specific hazardous gas must be identified.
+This sensor require proper callibaration and validation
 
 ---
 
