@@ -1,1 +1,59 @@
+## 🔌 Hardware Pin Connections
 
+### Microcontroller
+- **Controller:** ESP32-C3 Mini
+- **Communication:** I²C for compatible digital sensors
+- **Analog inputs:** Gas sensor outputs
+- **Digital outputs:** LEDs and buzzer driver
+
+### I²C Devices
+
+The VEML6075 UV sensor, MPU6050 motion sensor, and MLX90614 non-contact temperature sensor share the I²C/SMBus communication bus where supported.
+
+| Signal | Connection |
+|---|---|
+| SDA | Shared I²C data line |
+| SCL | Shared I²C clock line |
+| VCC | Voltage compatible with each module |
+| GND | Common ground |
+
+### Gas Sensors
+
+The MQ-7 and MQ-135 gas sensor modules use separate analog inputs for sensor-response measurements. Their digital comparator outputs may be connected to GPIO inputs if required.
+
+### Alert Indicators
+
+Four LEDs—red, blue, green, and yellow—are controlled independently using GPIO outputs and individual current-limiting resistors. An audible buzzer provides local warning alerts through a suitable GPIO interface or driver.
+
+### Power and Ground
+
+All modules must use compatible supply voltages. Shared signal interfaces must have an appropriate common ground, and sensor outputs must remain within the ESP32-C3 input limits.
+
+**Note:** The final GPIO numbers must match the physical circuit and firmware. The pin table should be updated after hardware verification.
+
+## 🔌 I²C Pin Connections
+
+The SoniX prototype uses the I²C communication protocol to interface with compatible sensors through the ESP32-C3 Mini.
+
+### Shared I²C Bus
+
+| ESP32-C3 Mini Signal | Sensor Connection |
+|---|---|
+| SDA | SDA of VEML6075, MPU6050, and MLX90614 |
+| SCL | SCL of VEML6075, MPU6050, and MLX90614 |
+| GND | Common ground |
+| VCC / 3V3 | Sensor supply, according to the module specifications |
+
+### Communication Principle
+
+- **SDA (Serial Data):** Transfers sensor data and commands.
+- **SCL (Serial Clock):** Synchronizes communication.
+- **Shared bus:** Multiple I²C devices can use the same SDA and SCL lines, provided their addresses are compatible.
+- **Device addressing:** The ESP32-C3 communicates with each sensor using its I²C address.
+
+### Implementation Notes
+
+- Configure the SDA and SCL GPIO numbers in the firmware according to the actual board wiring.
+- Verify the I²C addresses of connected sensors.
+- Check voltage compatibility and pull-up requirements before connecting modules.
+- Gas sensors, LEDs, and buzzers use their respective interfaces rather than the I²C bus unless additional interface hardware is installed.
