@@ -2,6 +2,12 @@
 
 **Smart India Hackathon 2026 | Problem Statement ID: 26243**
 
+
+
+| Team | Team ID | PS Category | Theme |
+|---|---|---|---|
+| SONiX | 196996 | Hardware | Robotics and Drones |
+
 An IoT-based worker safety monitoring system using ESP32-C3, environmental sensors, motion detection, non-contact thermal sensing, local alerts, and connected incident monitoring.
 
 ---
