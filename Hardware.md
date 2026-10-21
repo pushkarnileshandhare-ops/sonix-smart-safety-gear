@@ -95,19 +95,44 @@ The architecture separates sensor acquisition from decision logic and warning ou
 
 The following table is a **proposed example pin map**, not a verified record of the physical prototype.
 
-| ESP32-C3 GPIO | Interface | Connected component | Function |
-|---|---|---|---|
-| GPIO4 | I²C SDA | VEML6075, MPU6050, MLX90614 | Shared sensor data line |
-| GPIO5 | I²C SCL | VEML6075, MPU6050, MLX90614 | Shared sensor clock |
-| GPIO0 | ADC input | MQ-7 analog output | Conditioned gas-sensor signal |
-| GPIO1 | ADC input | MQ-135 analog output | Conditioned gas-sensor signal |
-| GPIO3 | Digital output | Red LED | Warning indication |
-| GPIO6 | Digital output | Blue LED | Secondary status indication |
-| GPIO7 | Digital output | Green LED | Normal-operation indication |
-| GPIO10 | Digital output | Yellow LED | Caution indication |
-| GPIO2 | Digital output | Buzzer driver | Audible alert control |
-| GND | Ground | All compatible modules | Common signal reference |
-| 3V3 / 5V | Power | As specified by module | Sensor and controller supply |
+
+## Pin Assignment
+
+The following table is a **proposed example pin map**, not a verified record of the physical prototype.
+
+| 
+## ESP32-C3 Super Mini — SONiX Pin Assignment
+
+| GPIO / Pin | Connected Component | Interface |
+|---|---|---|
+| GPIO0 | MQ-7 Analog Output | ADC |
+| GPIO1 | MQ-135 Analog Output | ADC |
+| GPIO2 | Buzzer Driver | Digital Output |
+| GPIO3 | Red LED | Digital Output |
+| GPIO4 | VEML6075 + MPU6050 + MLX90614 SDA | I2C SDA |
+| GPIO5 | VEML6075 + MPU6050 + MLX90614 SCL | I2C SCL |
+| GPIO6 | Blue LED | Digital Output |
+| GPIO7 | Green LED | Digital Output |
+| GPIO10 | Yellow LED | Digital Output |
+| GPIO18 | Micro SD MISO | SPI |
+| GPIO19 | Micro SD MOSI | SPI |
+| GPIO20 | Micro SD CS | SPI |
+| GPIO21 | Micro SD SCK | SPI |
+| 3V3 / Suitable Supply | Compatible Sensors and SD Module | Power |
+| GND | All Modules | Common Ground |
+
+### Hardware Notes
+
+- Use current-limiting resistors for all LEDs.
+- Ensure MQ-7 and MQ-135 analog outputs never exceed the ESP32-C3 ADC input limit.
+- GPIO2 is a strapping pin; verify boot behavior with the buzzer driver.
+- GPIO18 and GPIO19 are shared with native USB.
+- GPIO20 and GPIO21 are the default UART0 RX/TX pins.
+- Verify the Micro SD module's voltage and logic-level requirements before wiring.
+- Confirm pin availability against the exact ESP32-C3 Super Mini board variant.
+|
+
+
 
 > **Pin-map validation:** ESP32-C3 boards can differ in exposed pins, reserved connections, boot behaviour, and ADC availability. Check the exact board pinout and the selected board's firmware configuration before assigning these GPIOs. Do not assume every pin in this table is available on every Mini board.
 
@@ -168,6 +193,8 @@ The sensor should be positioned so that its field of view covers the intended ta
 
 MQ-7 modules require a specified heater operating cycle and calibration procedure. Raw ADC values are not equivalent to carbon monoxide concentration in ppm.
 
+Note! Use appropriate voltage divider network to connect output of sensor to esp32 input pins
+
 **Electrical constraint:** Never connect a module's analog output directly to an ESP32-C3 input unless the maximum output is verified to remain within the MCU's permitted input range. Use a properly designed divider or buffer when necessary.
 
 ### 5. MQ-135 — Air-Quality Monitoring
@@ -180,6 +207,8 @@ MQ-7 modules require a specified heater operating cycle and calibration procedur
 | Application | Broad response to selected air contaminants |
 
 This sensor require proper callibaration and validation
+
+Note! Use appropriate voltage divider network to connect output of sensor to esp32 input pins
 
 ---
 
