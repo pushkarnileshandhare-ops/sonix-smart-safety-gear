@@ -232,14 +232,20 @@ The Micro SD card module provides local storage for sensor readings and safety e
 
 The following GPIO assignments are examples only. Verify them against the exact ESP32-C3 Mini board and the existing pin assignments before wiring.
 
-| SD Card Module Pin | Proposed ESP32-C3 Mini Connection | Function |
+
+### Micro SD Card Module Connections
+
+| SD Card Module Pin | ESP32-C3 Super Mini Connection | Function |
 |---|---|---|
-| CS / SS | GPIO7 | Selects the SD card module |
-| SCK / CLK | GPIO0 | SPI clock |
-| MISO / DO | GPIO2 | Data from SD card to controller |
-| MOSI / DI | GPIO20 | Data from controller to SD card |
+| CS / SS | GPIO20 | Selects the SD card module |
+| SCK / CLK | GPIO21 | SPI clock |
+| MISO / DO | GPIO18 | Data from SD card to controller |
+| MOSI / DI | GPIO19 | Data from controller to SD card |
 | VCC | Module-rated supply | Power supply |
 | GND | GND | Common ground |
+
+**Note:** GPIO18 and GPIO19 conflict with native USB, while GPIO20 and GPIO21 conflict with the default UART0 RX/TX functions. Verify these trade-offs and the module's voltage requirements before wiring.
+
 
 > **Pin-map warning:** These example assignments conflict with existing assignments in the hardware table: GPIO7 is assigned to the green LED, GPIO0 to the MQ-7 sensor, and GPIO2 to the buzzer. Select available GPIOs, update the pin map and firmware together, and verify the exact board pinout before connecting the module. Ensure all SD card signals are compatible with the ESP32-C3's 3.3 V logic.
 
