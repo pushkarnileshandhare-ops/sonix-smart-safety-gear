@@ -1,60 +1,178 @@
-## 🔌 Hardware Pin Connections
+# SONiX — Hardware Connections, Pinout and I²C Protocol
 
-### Microcontroller
-- **Controller:** ESP32-C3 Mini
-- **Communication:** I²C for compatible digital sensors
-- **Analog inputs:** Gas sensor outputs
-- **Digital outputs:** LEDs and buzzer driver
+## 1. Project Overview
 
-### I²C Devices
+SONiX is a Smart Connected Safety Gear prototype built around an ESP32-C3 Mini. It combines environmental sensing, motion monitoring, non-contact temperature measurement, visual indicators, and audible alerts.
 
-The VEML6075 UV sensor, MPU6050 motion sensor, and MLX90614 non-contact temperature sensor share the I²C/SMBus communication bus where supported.
+This document covers the proposed hardware wiring, pin assignments, power requirements, and communication protocol.
 
-| Signal | Connection |
-|---|---|
-| SDA | Shared I²C data line |
-| SCL | Shared I²C clock line |
-| VCC | Voltage compatible with each module |
-| GND | Common ground |
+**Important:** The GPIO assignments are examples, not verified connections from the physical prototype. Confirm the exact ESP32-C3 Mini board variant and module pin labels before wiring.
 
-### Gas Sensors
+## 2. System Connection Diagram
 
-The MQ-7 and MQ-135 gas sensor modules use separate analog inputs for sensor-response measurements. Their digital comparator outputs may be connected to GPIO inputs if required.
+The VEML6075, MPU6050, and MLX90614 communicate over a shared I²C bus. The MQ-7 and MQ-135 use separate analog inputs.
 
-### Alert Indicators
+```mermaid
+flowchart TB
+    ESP["ESP32-C3 Mini"]
 
-Four LEDs—red, blue, green, and yellow—are controlled independently using GPIO outputs and individual current-limiting resistors. An audible buzzer provides local warning alerts through a suitable GPIO interface or driver.
+    subgraph I2C["Shared I²C Bus"]
+        UV["VEML6075<br/>UV Sensor"]
+        IMU["MPU6050<br/>Motion Sensor"]
+        IR["MLX90614<br/>IR Temperature"]
+    end
 
-### Power and Ground
+    subgraph GAS["Analog Gas Sensors"]
+        MQ7["MQ-7 Module"]
+        MQ135["MQ-135 Module"]
+        ADC["Voltage Conditioning<br/>if required"]
+    end
 
-All modules must use compatible supply voltages. Shared signal interfaces must have an appropriate common ground, and sensor outputs must remain within the ESP32-C3 input limits.
+    subgraph ALERTS["Alert Outputs"]
+        RED["Red LED"]
+        BLUE["Blue LED"]
+        GREEN["Green LED"]
+        YELLOW["Yellow LED"]
+        BUZZER["Active Buzzer"]
+    end
 
-**Note:** The final GPIO numbers must match the physical circuit and firmware. The pin table should be updated after hardware verification.
+    ESP <-->|"SDA: GPIO4<br/>SCL: GPIO5 (examples)"| UV
+    ESP <-->|"Shared SDA / SCL"| IMU
+    ESP <-->|"Shared SDA / SCL"| IR
 
-## 🔌 I²C Pin Connections
+    MQ7 --> ADC
+    MQ135 --> ADC
+    ADC -->|"Separate ADC inputs"| ESP
 
-The SoniX prototype uses the I²C communication protocol to interface with compatible sensors through the ESP32-C3 Mini.
+    ESP -->|"GPIO3 (example)"| RED
+    ESP -->|"GPIO6 (example)"| BLUE
+    ESP -->|"GPIO7 (example)"| GREEN
+    ESP -->|"GPIO10 (example)"| YELLOW
+    ESP -->|"GPIO2 (example)"| BUZZER
 
-### Shared I²C Bus
+    PWR["Regulated Power Supplies"]
+    GND["Common Ground"]
 
-| ESP32-C3 Mini Signal | Sensor Connection |
-|---|---|
-| SDA | SDA of VEML6075, MPU6050, and MLX90614 |
-| SCL | SCL of VEML6075, MPU6050, and MLX90614 |
-| GND | Common ground |
-| VCC / 3V3 | Sensor supply, according to the module specifications |
+    PWR -.-> ESP
+    PWR -.-> UV
+    PWR -.-> IMU
+    PWR -.-> IR
+    PWR -.-> MQ7
+    PWR -.-> MQ135
 
-### Communication Principle
+    GND -.-> ESP
+    GND -.-> UV
+    GND -.-> IMU
+    GND -.-> IR
+    GND -.-> MQ7
+    GND -.-> MQ135
+```
 
-- **SDA (Serial Data):** Transfers sensor data and commands.
-- **SCL (Serial Clock):** Synchronizes communication.
-- **Shared bus:** Multiple I²C devices can use the same SDA and SCL lines, provided their addresses are compatible.
-- **Device addressing:** The ESP32-C3 communicates with each sensor using its I²C address.
+*Diagram note: The GPIO assignments are illustrative. The voltage-conditioning block is required whenever a gas module's analog output can exceed the ESP32-C3 ADC input limit.*
 
-### Implementation Notes
+## 3. Complete GPIO Connection Table
 
-- Configure the SDA and SCL GPIO numbers in the firmware according to the actual board wiring.
-- Verify the I²C addresses of connected sensors.
-- Check voltage compatibility and pull-up requirements before connecting modules.
-- Gas sensors, LEDs, and buzzers use their respective interfaces rather than the I²C bus unless additional interface hardware is installed.
+| Component | Pin | Example ESP32-C3 connection | Function |
+|---|---|---|---|
+| VEML6075 | SDA | GPIO4 | I²C data |
+| VEML6075 | SCL | GPIO5 | I²C clock |
+| MPU6050 | SDA | GPIO4 | Shared I²C data |
+| MPU6050 | SCL | GPIO5 | Shared I²C clock |
+| MLX90614 | SDA | GPIO4 | Shared I²C data |
+| MLX90614 | SCL | GPIO5 | Shared I²C clock |
+| MQ-7 | AO | GPIO0 / ADC | Analog reading |
+| MQ-135 | AO | GPIO1 / ADC | Analog reading |
+| Red LED | Anode through resistor | GPIO3 | General warning |
+| Blue LED | Anode through resistor | GPIO6 | UV warning |
+| Green LED | Anode through resistor | GPIO7 | Normal status |
+| Yellow LED | Anode through resistor | GPIO10 | Gas warning |
+| Active buzzer | Signal | GPIO2 | Audible alert |
+| All modules | GND | Common GND | Electrical reference |
 
+**Pin verification:** Check the selected board's pinout, ADC availability, boot-strapping requirements, and peripheral conflicts. GPIO2 can affect boot behavior on some ESP32-C3 designs.
+
+## 4. Detailed I²C Sensor Pin Descriptions
+
+### 4.1 VEML6075 — UV Sensor
+
+| Pin | Description | Connection |
+|---|---|---|
+| VIN/VCC | Sensor supply | Use the voltage supported by the breakout |
+| GND | Ground | Common GND |
+| SDA | Serial data | GPIO4, example |
+| SCL | Serial clock | GPIO5, example |
+
+The VEML6075 measures UVA and UVB radiation and communicates measurement data digitally over I²C.
+
+### 4.2 MPU6050 — Motion Sensor
+
+| Pin | Description | Connection |
+|---|---|---|
+| VCC | Module power | Check the breakout's supply specification |
+| GND | Ground | Common GND |
+| SDA | Serial data | GPIO4, example |
+| SCL | Serial clock | GPIO5, example |
+| INT | Optional interrupt output | May be left disconnected if unused |
+
+The MPU6050 contains a three-axis accelerometer and a three-axis gyroscope. It can provide motion and orientation-related measurements. An acceleration threshold alone does not constitute a validated fall-detection algorithm.
+
+### 4.3 MLX90614 — Non-Contact Temperature Sensor
+
+| Pin | Description | Connection |
+|---|---|---|
+| VIN/VCC | Sensor supply | Follow the breakout's voltage specification |
+| GND | Ground | Common GND |
+| SDA | Serial data | GPIO4, example |
+| SCL | Serial clock | GPIO5, example |
+
+The MLX90614 measures infrared radiation to estimate object temperature and also reports sensor ambient temperature. The result depends on the target, distance, field of view, and sensor configuration.
+
+## 5. Required Voltage and Power Information
+
+The voltage depends on whether the design uses a bare sensor IC or a breakout module containing a regulator and/or level shifting. The **actual module datasheet takes precedence**.
+
+| Component | Supply guidance | Signal-level requirement |
+|---|---|---|
+| ESP32-C3 Mini | Use the board's specified USB or regulated input | GPIO logic is 3.3 V; do not apply 5 V to GPIOs |
+| VEML6075 | Bare IC operates approximately within 2.4–3.6 V; verify breakout | I²C levels must be compatible with 3.3 V logic |
+| MPU6050 | Bare IC supply is approximately 2.375–3.46 V; breakout requirements vary | Use compatible I²C logic levels |
+| MLX90614 | Bare-device and breakout supply options vary by version | Confirm I²C pull-up voltage and module specification |
+| MQ-7 module | Many common modules use a 5 V heater supply | AO must be conditioned to remain within ADC limits |
+| MQ-135 module | Many common modules use a 5 V supply | AO must be conditioned to remain within ADC limits |
+| LEDs | Driven from GPIO through individual resistors | Keep current within GPIO limits |
+| Active buzzer | Depends on the buzzer model | Use a driver if its current exceeds safe GPIO capability |
+
+### Power and Safety Rules
+
+1. Never connect a 5 V signal directly to an ESP32-C3 GPIO or ADC input.
+2. Measure each MQ module's AO voltage under operating conditions before connecting it to the ESP32.
+3. Use a suitable voltage divider or other signal-conditioning circuit when required; calculate it for the maximum possible output voltage.
+4. MQ heater circuits may consume substantially more current than small digital sensors. Do not assume the ESP32 board's 3.3 V regulator can power them.
+5. Use an appropriately rated supply and connect grounds together for signals that share a reference.
+6. Check the I²C breakout pull-ups. A module that pulls SDA/SCL to 5 V is not suitable for direct connection to 3.3 V ESP32 logic without appropriate level translation.
+
+## 6. I²C Protocol Details
+
+I²C (Inter-Integrated Circuit) is a synchronous, two-wire serial communication protocol. It allows several compatible devices to communicate with one controller using shared signal lines.
+
+### 6.1 I²C Signal Lines
+
+| Signal | Full name | Purpose |
+|---|---|---|
+| SDA | Serial Data | Transfers addresses, commands, and sensor data |
+| SCL | Serial Clock | Synchronizes communication |
+| GND | Ground reference | Establishes the shared electrical reference |
+| VCC/VIN | Power | Supplies the sensor module; not an I²C communication signal |
+
+I²C lines are typically open-drain/open-collector and require pull-up resistors. The pull-up voltage must be compatible with every device connected to the bus.
+
+### 6.2 How I²C Communication Works
+
+1. The controller generates a START condition.
+2. It sends the target device's address and a read/write bit.
+3. The addressed device acknowledges when appropriate.
+4. The controller and device exchange data bytes.
+5. A receiver acknowledges each applicable byte.
+6. The transaction ends with a STOP condition, or the controller may use a repeated START.
+
+The SDA line
