@@ -175,4 +175,105 @@ I²C lines are typically open-drain/open-collector and require pull-up resistors
 5. A receiver acknowledges each applicable byte.
 6. The transaction ends with a STOP condition, or the controller may use a repeated START.
 
-The SDA line
+The SDA line carries data while SCL provides the clock. All devices share the wires but respond to their own addresses.
+
+### 6.3 Typical I²C Settings
+
+| Parameter | SONiX prototype guidance |
+|---|---|
+| Controller | ESP32-C3 Mini |
+| Data line | SDA, example GPIO4 |
+| Clock line | SCL, example GPIO5 |
+| Initial bus speed | 100 kHz (Standard-mode) |
+| Address format | Typically 7-bit device addresses |
+| Pull-ups | Required; often already present on sensor breakouts |
+| Bus wiring | Short, secure connections preferred |
+
+### 6.4 Common Device Addresses
+
+The following are typical 7-bit addresses; confirm them against the particular sensor and breakout configuration.
+
+| Sensor | Typical 7-bit I²C address |
+|---|---|
+| VEML6075 | `0x10` |
+| MPU6050 | `0x68` or `0x69`, depending on AD0 |
+| MLX90614 | `0x5A` |
+
+These addresses are different, so these three devices can normally share one bus without an address conflict.
+
+### 6.5 I²C Wiring Example
+
+```text
+ESP32-C3 Mini            I²C Sensors
+
+GPIO4 (SDA) ──────────── SDA (VEML6075)
+        ├─────────────── SDA (MPU6050)
+        └─────────────── SDA (MLX90614)
+
+GPIO5 (SCL) ──────────── SCL (VEML6075)
+        ├─────────────── SCL (MPU6050)
+        └─────────────── SCL (MLX90614)
+
+3.3 V / compatible VCC ─ VCC/VIN (as supported)
+GND ─────────────────── GND on all modules
+```
+
+### 6.6 I²C Troubleshooting
+
+- Check power and ground on every module.
+- Confirm SDA and SCL have not been swapped.
+- Verify the correct GPIO assignments in firmware.
+- Confirm the devices are responding at their expected addresses using an I²C scanner.
+- Check that pull-ups are present and that their voltage is compatible with the ESP32.
+- Keep wiring short and avoid loose connections.
+- If the bus does not work, test one sensor at a time.
+
+## 7. MQ Gas Sensor Connections
+
+The MQ-7 and MQ-135 are not I²C sensors. Their analog outputs are measured using the ESP32-C3 ADC.
+
+| Module pin | Connection | Details |
+|---|---|---|
+| VCC | Module-rated supply | Verify heater and board requirements |
+| GND | Common GND | Shared signal reference |
+| AO | ADC input through conditioning if necessary | Analog sensor-response voltage |
+| DO | Optional | Digital threshold output on modules that provide it |
+
+MQ sensor output depends on warm-up, calibration, environmental conditions, sensor age, and the module's load resistance. An ADC count alone cannot reliably identify a particular gas or its concentration in ppm.
+
+## 8. LED and Buzzer Wiring
+
+### LEDs
+
+Connect each GPIO through its own current-limiting resistor to the LED anode. Connect the cathode to GND.
+
+| LED | Example GPIO | Intended indication |
+|---|---:|---|
+| Red | GPIO3 | General warning |
+| Blue | GPIO6 | UV threshold alert |
+| Green | GPIO7 | Normal condition |
+| Yellow | GPIO10 | Gas threshold alert |
+
+### Buzzer
+
+| Buzzer terminal | Connection |
+|---|---|
+| Signal / + | GPIO2, example only |
+| GND / − | GND |
+
+Check the buzzer's rated voltage and current. Use a transistor driver and suitable supply where required, and verify that the chosen GPIO does not interfere with board boot behavior.
+
+## 9. Pre-Power Checklist
+
+- [ ] Confirm the exact ESP32-C3 Mini board variant and pinout.
+- [ ] Verify each sensor breakout's rated supply voltage.
+- [ ] Check SDA/SCL wiring and I²C addresses.
+- [ ] Confirm that I²C pull-ups are compatible with 3.3 V logic.
+- [ ] Measure and condition MQ analog outputs as necessary.
+- [ ] Confirm LED resistor values and buzzer current.
+- [ ] Test sensors individually before enabling combined alerts.
+- [ ] Secure all connections and inspect for shorts.
+
+## 10. Safety Disclaimer
+
+SONiX is a development prototype, not certified personal protective equipment or a validated life-safety system. It must not replace approved PPE, calibrated safety instruments, electrical isolation, or established workplace safety procedures.
