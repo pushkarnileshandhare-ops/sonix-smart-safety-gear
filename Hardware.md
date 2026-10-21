@@ -1,4 +1,4 @@
-# Hardware — SONiX Smart Connected Safety Gear
+# Hardware — SoniX Smart Connected Safety Gear
 
 This document describes the hardware architecture, sensor interfaces, electrical requirements, MCU pin assignments, communication protocols, and prototype validation procedure for **SONiX — Smart Connected Safety Gear for Electrical and Welding Trades**.
 
