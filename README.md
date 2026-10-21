@@ -1,4 +1,4 @@
-# SoniX — Smart Connected Safety Gear for  Welding Trades
+# SoNiX — Smart Connected Safety Gear for  Welding Trades
 
 **Smart India Hackathon 2026 | Problem Statement ID: 26243**
 
